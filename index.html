@@ -27,12 +27,12 @@ textarea{min-height:105px;resize:vertical;font-size:13px;line-height:1.55}button
 <p class="muted">このゲームではホストはビンゴカードを持たず、進行と補足情報の表示を担当します。</p>\n<label for="playerName">あなたの名前</label><input id="playerName" maxlength="20" placeholder="例：あおい">
 <div class="row" style="margin-top:8px"><button class="primary" id="createRoom">新しい部屋を作る</button><button id="joinRoom">この部屋に参加</button></div>
 <div id="shareArea" class="hidden"><label>招待URL（LINEで共有）</label><input id="shareUrl" readonly><div class="row" style="margin-top:7px"><button id="copyUrl">URLをコピー</button><button id="copyCode">部屋コードをコピー</button></div></div>
-<div id="playersArea" class="hidden"><h3>参加者・順番</h3><div id="players" class="players"></div><div class="row"><button id="announceResultsBtn" class="primary">結果発表（ホスト）</button></div><div id="resultsPanel" class="feed"></div><p class="muted">順番は参加順です。自分の番で単語を宣言してください。宣言後、全員が自分のカードでマスを選び、確定ボタンを押します。</p></div>
+<div id="playersArea" class="hidden"><h3>参加者・順番</h3><div id="players" class="players"></div><div class="row"><button id="announceResultsBtn" class="primary">結果発表（ホスト）</button></div><p class="muted">順番は参加順です。自分の番で単語を宣言してください。宣言後、全員が自分のカードでマスを選び、確定ボタンを押します。</p></div>
 <div class="footer">
 <h2>② お題を編集（ホスト用）</h2>
 <p class="muted">1行に1つ。CSV/Excelから貼り付けできます。難しいお題は「中央＋両斜め」の9マスに配置します。</p>
-<label for="normalTopics">普通のお題（16個以上）</label><textarea id="normalTopics"></textarea>
-<label for="hardTopics">難しいお題（9個以上）</label><textarea id="hardTopics"></textarea>
+<div class="row"><button type="button" id="toggleTopicsEditor">お題リストを表示する</button></div><div id="topicsEditorFields" class="hidden"><label for="normalTopics">普通のお題（16個以上）</label><textarea id="normalTopics"></textarea>
+<label for="hardTopics">難しいお題（9個以上）</label><textarea id="hardTopics"></textarea></div>
 <div class="row"><button id="sampleBtn">サンプル100題を読み込む</button><button id="applyTopics" class="primary">お題を部屋に反映</button></div>
 <p class="muted">CSVは1列のリストとして読み込みます。1行目が「お題」などの見出しでも、見出しを含めて読み込むので必要なら削除してください。</p>
 </div>
@@ -45,6 +45,7 @@ textarea{min-height:105px;resize:vertical;font-size:13px;line-height:1.55}button
 </div>
 </section>
 <section class="panel">
+<div id="resultsPanel" class="feed"></div>
 <div class="boardtop"><h2>③ あなたのビンゴカード</h2><span id="myName" class="pill">未参加</span></div>
 <div id="hostSupplement" class="footer"><h3>司会者の補足情報</h3><p class="muted">参加者の宣言に、説明やヒントを追加できます。</p><textarea id="hostSupplementInput" placeholder="例：このお題は果物の一種です"></textarea><button id="saveHostSupplement" class="primary">補足情報を表示・保存</button><div id="hostSupplementDisplay" class="feed"></div></div><div id="declaredTopic" class="declared-topic"><div class="label">いま宣言されているお題</div><div id="declaredWord" class="word">まだ宣言はありません</div><div id="declaredBy" class="by">ゲーム開始を待っています</div></div><div id="board" class="board"></div>
 <div class="row"><div class="status"><div class="metric" id="bingoCount">ビンゴ 0ライン</div><div class="small" id="openCount">開けた数 0 / 25</div></div><div class="status"><div class="metric" id="turnLabel">順番：—</div><div class="small" id="roomCodeLabel">部屋：—</div></div></div>
@@ -609,6 +610,7 @@ async function finishIfDone(){
  await roomRef.update({history,turnIndex,activeClaim:null,finalResults:null});
 }
 $('applyTopics').onclick=async()=>{if(!room||!isHost)return alert('お題の反映は部屋を作った人だけができます。');const n=splitTopics($('normalTopics').value),h=splitTopics($('hardTopics').value);if(n.length<16||h.length<9)return alert('普通のお題16個以上、難しいお題9個以上必要です。');if(!confirm('全員のカードを新しいお題で作り直します。続けますか？'))return;await roomRef.update({normalTopics:n,hardTopics:h,finalResults:null});const s=(await roomRef.get()).val();for(const pid of s.turnOrder){const p=s.players[pid];await roomRef.child('players/'+pid+'/card').set(makeCard(n,h));await roomRef.child('players/'+pid).update({reachAt:null,reachClaimId:null});}await roomRef.update({history:[],claims:{},activeClaim:null,turnIndex:0});alert('お題を反映し、全員のカードを作り直しました。');};
+$('toggleTopicsEditor').onclick=()=>{const box=$('topicsEditorFields');const willShow=box.classList.contains('hidden');box.classList.toggle('hidden',!willShow);$('toggleTopicsEditor').textContent=willShow?'お題リストを隠す':'お題リストを表示する';};
 $('sampleBtn').onclick=setSamples;
 $('resetBtn').onclick=async()=>{
  if(!isHost)return alert('ホストだけが操作できます。');
